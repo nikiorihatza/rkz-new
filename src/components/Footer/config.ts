@@ -53,6 +53,7 @@ export const FOOTER_SECTIONS: FooterSection[] = [
     title: "Rechtliches",
     links: [
       { id: "terms", label: "AGB", url: "/terms" },
+      { id: "privacy", label: "Datenschutz", url: "/privacy" },
       { id: "imprint", label: "Impressum", url: "/imprint" }
     ]
   }
