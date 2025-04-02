@@ -9,7 +9,7 @@ import { News } from '../components/News/types';
 import { Product } from '../components/Products/types';
 
 export const Management: React.FC = () => {
-    const { news, products, addNews, addProduct, deleteNews, deleteProduct, updateNewsItem, updateProductItem } = useData();
+    const { news, products, addNews, addProduct, deleteNews, deleteProduct, editNews, updateProductItem } = useData();
     const [activeTab, setActiveTab] = useState<'news' | 'products'>('news');
     const [editingId, setEditingId] = useState<number | string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
@@ -30,12 +30,12 @@ export const Management: React.FC = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSave = () => {
+    const handleSave = async (e: React.FormEvent) => {
         if (activeTab === 'news') {
             if (editingId !== null) {
-                updateNewsItem(editingId as number, formData as Partial<News>);
+                await editNews(editingId, formData);  // Pass formData instead of the event
             } else if (isAdding) {
-                addNews({ ...formData, id: Date.now() } as News);
+                addNews({ ...formData, id: Date.now().toString() } as News);
             }
         } else {
             if (editingId !== null) {
@@ -57,9 +57,11 @@ export const Management: React.FC = () => {
         setIsAdding(false);
     };
 
-    const handleDelete = async (id: number | string, e: React.MouseEvent) => {
+    const handleDelete = async (firestoreId: number | string, e: React.MouseEvent) => {
+        console.log("Trying to delete data entry")
+
         try {
-            await deleteNews(id);
+            await deleteNews(firestoreId);
         } catch (error) {
             console.error("Delete failed:", error);
         }
@@ -190,7 +192,7 @@ export const Management: React.FC = () => {
                         <div className="space-y-4">
                             {(activeTab === 'news' ? news : products).map((item) => (
                                 <motion.div
-                                    key={item.id}
+                                    key={item.id}  // Use firestoreId for unique key prop
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
@@ -198,7 +200,7 @@ export const Management: React.FC = () => {
                                 >
                                     <div className="flex items-center space-x-4">
                                         <img
-                                            src={item.imageUrl || (item as any).image}
+                                            src={item.imageUrl || item.image}
                                             alt={item.title}
                                             className="w-12 h-12 rounded-lg object-cover"
                                         />
@@ -219,7 +221,7 @@ export const Management: React.FC = () => {
                                             <Edit className="w-4 h-4" />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(item.id)}
+                                            onClick={() => handleDelete(item.id)}  // Use firestoreId here
                                             className="p-2 text-gray-400 hover:text-accent-500 dark:text-secondary-400 dark:hover:text-accent-400"
                                         >
                                             <Trash2 className="w-4 h-4" />

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from "../firebaseConfig";
-import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc } from "firebase/firestore";
 import { News } from '../components/News/types';
 import { Product } from '../components/Products/types';
 
@@ -11,7 +11,7 @@ interface DataContextType {
     error: string | null;
     updateNews: (news: News[]) => void;
     updateProducts: (products: Product[]) => void;
-    addNews: (news: Omit<News, "id">) => Promise<string>; // Returns document ID
+    addNews: (news: Omit<News, "id">) => Promise<string>;
     addProduct: (product: Omit<Product, "id">) => Promise<string>;
     deleteNews: (id: string) => Promise<void>;
     deleteProduct: (id: string) => Promise<void>;
@@ -34,13 +34,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const newsData = newsSnapshot.docs.map(d => {
                 const data = d.data();
                 return {
-                    id: data.id ? Number(data.id) : d.id, // Use numeric ID if exists, fallback to document ID
+                    id: data.id ? Number(data.id) : d.id,
                     ...data
                 } as News;
             });
             setNews(newsData);
         } catch (err) {
-            // error handling
+            const message = err instanceof Error ? err.message : "Failed to fetch data";
+            setError(message);
+            throw new Error(message);
         }
     };
 
@@ -63,29 +65,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Robust delete function with type checking
     const deleteNews = async (id: string | number) => {
-        console.log(`Trying to delete News: ${id}`);
-        const docId = String(id);
-
-        if (!docId.trim()) {
-            throw new Error(`Invalid document ID: ${docId}`);
-        }
-
         try {
-            const docRef = doc(db, "news", docId);
-            console.log("Document Reference:", docRef);
-
+            const docRef = doc(db, "news", id);
             await deleteDoc(docRef);
-
-            setNews(prev => prev.filter(item => item.id !== docId));
+            setNews(prev => prev.filter(item => item.id !== id));
         } catch (err) {
-            const message = `Failed to delete news (ID: ${docId}): ${err instanceof Error ? err.message : err}`;
+            const message = `Failed to delete news (ID: ${id}): ${err instanceof Error ? err.message : err}`;
             setError(message);
             console.error(message);
             throw new Error(message);
         }
     };
 
-    // Similar improvements for other operations...
+    // Edit News
+    const editNews = async (id: string | number, updatedData: Partial<News>) => {
+        try {
+            const docRef = doc(db, "news", String(id));
+            await updateDoc(docRef, updatedData);
+            alert("News updated successfully!");
+        } catch (error) {
+            const message = `Failed to update news (ID: ${id}): ${error instanceof Error ? error.message : error}`;
+            setError(message);
+            console.error(message);
+            throw new Error(message);
+        }
+    };
 
     return (
         <DataContext.Provider
